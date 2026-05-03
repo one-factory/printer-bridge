@@ -1,0 +1,96 @@
+name: Build Installers
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  build-macos-dmg:
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: gradle
+
+      - name: Build distribution
+        run: ./gradlew clean installDist
+
+      - name: Detect app version
+        id: app_version
+        shell: bash
+        run: |
+          VERSION=$(./gradlew -q properties | grep "^version:" | awk '{print $2}')
+          echo "value=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Build DMG
+        shell: bash
+        run: |
+          jpackage \
+            --type dmg \
+            --name "OneFactoryPrinterBridge" \
+            --input "build/install/webapp-hardware-bridge/lib" \
+            --main-jar "webapp-hardware-bridge-${{ steps.app_version.outputs.value }}.jar" \
+            --main-class "tigerworkshop.webapphardwarebridge.GUI" \
+            --dest "build/packaging" \
+            --app-version "${{ steps.app_version.outputs.value }}" \
+            --vendor "OneFactory"
+
+      - name: Upload DMG artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: OneFactoryPrinterBridge-macOS-dmg
+          path: build/packaging/*.dmg
+
+  build-windows-exe:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: gradle
+
+      - name: Build distribution
+        shell: powershell
+        run: .\gradlew.bat clean installDist
+
+      - name: Detect app version
+        id: app_version
+        shell: powershell
+        run: |
+          $line = .\gradlew.bat -q properties | Select-String "^version:"
+          $version = ($line -split ":")[1].Trim()
+          "value=$version" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+
+      - name: Build EXE
+        shell: powershell
+        run: |
+          jpackage `
+            --type exe `
+            --name "OneFactoryPrinterBridge" `
+            --input "build\install\webapp-hardware-bridge\lib" `
+            --main-jar "webapp-hardware-bridge-${{ steps.app_version.outputs.value }}.jar" `
+            --main-class "tigerworkshop.webapphardwarebridge.GUI" `
+            --dest "build\packaging" `
+            --app-version "${{ steps.app_version.outputs.value }}" `
+            --vendor "OneFactory"
+
+      - name: Upload EXE artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: OneFactoryPrinterBridge-windows-exe
+          path: build/packaging/*.exe
