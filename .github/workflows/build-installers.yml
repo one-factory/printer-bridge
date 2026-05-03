@@ -1,11 +1,9 @@
 name: Build Installers
 
 on:
-  push:
-    branches:
-      - main
-    tags:
-      - "v*"
+  release:
+    types:
+      - published
   workflow_dispatch:
 
 jobs:
@@ -98,7 +96,6 @@ jobs:
           path: build/packaging/*.exe
 
   publish-release:
-    if: startsWith(github.ref, 'refs/tags/v')
     needs:
       - build-macos-dmg
       - build-windows-exe
