@@ -201,12 +201,17 @@ public class Server implements WebSocketServerInterface {
         });
 
         javalinServer.put("/config.json", ctx -> {
-            configService.loadFromJson(ctx.body());
-            configService.save();
+            try {
+                configService.loadFromJson(ctx.body());
+                configService.save();
 
-            messageToService("/notification", objectMapper.writeValueAsString(new NotificationDTO("INFO", "Setting", "Setting saved successfully")));
+                messageToService("/notification", objectMapper.writeValueAsString(new NotificationDTO("INFO", "Setting", "Setting saved successfully")));
 
-            ctx.contentType(ContentType.APPLICATION_JSON).result(configService.getConfig().toJson());
+                ctx.contentType(ContentType.APPLICATION_JSON).result(configService.getConfig().toJson());
+            } catch (Exception e) {
+                log.error("Failed to save config", e);
+                ctx.status(500).contentType(ContentType.TEXT_PLAIN).result("Failed to save config");
+            }
         });
 
         javalinServer.get("/system/printers.json", ctx -> {
