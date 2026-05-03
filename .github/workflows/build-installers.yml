@@ -21,17 +21,14 @@ jobs:
           java-version: "21"
           cache: gradle
 
-      - name: Make Gradle wrapper executable
-        run: chmod +x ./gradlew
-
       - name: Build distribution
-        run: ./gradlew clean installDist
+        run: gradle clean installDist
 
       - name: Detect app version
         id: app_version
         shell: bash
         run: |
-          VERSION=$(./gradlew -q properties | grep "^version:" | awk '{print $2}')
+          VERSION=$(gradle -q properties | grep "^version:" | awk '{print $2}')
           echo "value=$VERSION" >> "$GITHUB_OUTPUT"
 
       - name: Build DMG
@@ -69,13 +66,13 @@ jobs:
 
       - name: Build distribution
         shell: powershell
-        run: .\gradlew.bat clean installDist
+        run: gradle clean installDist
 
       - name: Detect app version
         id: app_version
         shell: powershell
         run: |
-          $line = .\gradlew.bat -q properties | Select-String "^version:"
+          $line = gradle -q properties | Select-String "^version:"
           $version = ($line -split ":")[1].Trim()
           "value=$version" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
 
